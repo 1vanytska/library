@@ -1,44 +1,32 @@
-from flask import Blueprint, jsonify, request
+from fastapi import APIRouter, HTTPException, status
 from ..schemas.book_schema import BookSchema
-from ..storage.book_storage import books
 from ..models.book_model import Book
+from ..storage.book_storage import books
 
-book_schema = BookSchema()
-books_schema = BookSchema(many=True)
+router = APIRouter()
 
-book_bp = Blueprint('book_bp', __name__)
+@router.get("/books")
+async def get_books():
+    return books
 
-@book_bp.route('/', methods=['GET'])
-def get_books():
-    return jsonify({"books": books_schema.dump(books)})
+@router.get("/books/{book_id}")
+async def get_book(book_id: int):
+    for book in books:
+        if book["id"] == book_id:
+            return book
+    raise HTTPException(status_code=404, detail="Book not found")
 
-@book_bp.route('/<int:book_id>', methods=['GET'])
-def get_book(book_id):
-    book = next((b for b in books if b["id"] == book_id), None)
-    if book is None:
-        return jsonify({"error": "Book not found"}), 404
-    return jsonify(book_schema.dump(book))
+@router.post("/books", status_code=status.HTTP_201_CREATED)
+async def add_book(book: BookSchema):
+    new_book = Book(title=book.title, author=book.author)
+    book_dict = new_book.to_dict()
+    books.append(book_dict)
+    return book_dict
 
-@book_bp.route('/', methods=['POST'])
-def add_book():
-    data = request.get_json()
-    
-    errors = book_schema.validate(data)
-    if errors:
-        return jsonify(errors), 400
-
-    book = Book(data["title"], data["author"])
-    books.append(book)
-
-    return jsonify(book_schema.dump(book.to_dict())), 201
-
-@book_bp.route('/<int:book_id>', methods=['DELETE'])
-def delete_book(book_id):
-    book = next((book for book in books if book["id"] == book_id), None)
-    
-    if book is None:
-        return jsonify({"message": "Book not found"}), 404
-    
-    books.remove(book)
-    return jsonify({"message": f"Book with ID {book_id} has been deleted"}), 200
-
+@router.delete("/books/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_book(book_id: int):
+    for book in books:
+        if book["id"] == book_id:
+            books.remove(book)
+            return {"message": "Book deleted"}
+    raise HTTPException(status_code=404, detail="Book not found")

@@ -1,7 +1,7 @@
-from flask import Flask
-from app.views.book import book_bp
+from fastapi import FastAPI
+from .views.book import router
 
 def create_app():
-    app = Flask(__name__)
-    app.register_blueprint(book_bp, url_prefix="/books")
+    app = FastAPI(title="Library API")
+    app.include_router(router)
     return app
