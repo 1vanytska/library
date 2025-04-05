@@ -10,11 +10,20 @@ book_bp = Blueprint('book_bp', __name__)
 
 @book_bp.route('/', methods=['GET'])
 def get_books():
-    limit = request.args.get("limit", default=10, type=int)
-    offset = request.args.get("offset", default=0, type=int)
+    limit = int(request.args.get('limit', 10))
+    cursor = request.args.get('cursor', None)
+    query = Book.query.order_by(Book.id)
+    if cursor:
+        query = query.filter(Book.id > cursor)
 
-    books = Book.query.limit(limit).offset(offset).all()
-    return jsonify({"books": books_schema.dump(books)})
+    books = query.limit(limit).all()
+    books_data = [{"id": book.id, "title": book.title, "author": book.author} for book in books]
+    next_cursor = books[-1].id if books else None
+
+    return jsonify({
+        'books': books_data,
+        'next_cursor': next_cursor
+    })
 
 @book_bp.route('/<int:book_id>', methods=['GET'])
 def get_book(book_id):
