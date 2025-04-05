@@ -1,9 +1,33 @@
 services:
+  db:
+    image: postgres:15
+    container_name: library_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 0987
+      POSTGRES_DB: library_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+
   api:
     build: .
     container_name: books_api
     ports:
       - "5000:5000"
+    depends_on:
+      - db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 0987
+      POSTGRES_DB: library_db
+      POSTGRES_HOST: db
     volumes:
       - .:/app
     command: python run.py
+
+volumes:
+  pg_data:
