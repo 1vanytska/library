@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, url_for
 from app.models.book_model import Book
 from app.schemas.book_schema import BookSchema
 from app import db
@@ -13,8 +13,23 @@ def get_books():
     limit = request.args.get("limit", default=10, type=int)
     offset = request.args.get("offset", default=0, type=int)
 
+    total_books = Book.query.count()
     books = Book.query.limit(limit).offset(offset).all()
-    return jsonify({"books": books_schema.dump(books)})
+
+    def build_url(new_offset):
+        return url_for('book_bp.get_books', limit=limit, offset=new_offset, _external=True)
+
+    next_url = build_url(offset + limit) if offset + limit < total_books else None
+    prev_url = build_url(offset - limit) if offset - limit >= 0 else None
+
+    return jsonify({
+        "total": total_books,
+        "limit": limit,
+        "offset": offset,
+        "next": next_url,
+        "previous": prev_url,
+        "books": books_schema.dump(books)
+    })
 
 @book_bp.route('/<int:book_id>', methods=['GET'])
 def get_book(book_id):
