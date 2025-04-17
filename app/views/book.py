@@ -7,6 +7,7 @@ book_schema = BookSchema()
 books_schema = BookSchema(many=True)
 
 book_bp = Blueprint('book_bp', __name__)
+
 @book_bp.route('/', methods=['GET'])
 def get_books():
     limit = int(request.args.get('limit', 10))
@@ -21,40 +22,48 @@ def get_books():
             cursor = int(cursor)
             if direction == 'next':
                 query = query.filter(Book.id > cursor)
-                order = Book.id.asc()
             elif direction == 'prev':
                 query = query.filter(Book.id < cursor)
                 order = Book.id.desc()
         except ValueError:
             return jsonify({"error": "Invalid cursor value"}), 400
 
-    books = query.order_by(order).limit(limit).all()
+    books = query.order_by(order).limit(limit + 1).all()
 
     if direction == 'prev':
         books = list(reversed(books))
 
+    has_more = len(books) > limit
+    books = books[:limit]
+
     books_data = books_schema.dump(books)
-    total_books = Book.query.count()
 
-    next_cursor = books[-1].id if books else None
-    prev_cursor = books[0].id if books else None
+    total_count = Book.query.count()
 
-    next_url = (
-        url_for('book_bp.get_books', limit=limit, cursor=next_cursor, direction='next', _external=True)
-        if next_cursor and len(books) == limit and direction != 'prev' else None
-    )
+    next_url = None
+    prev_url = None
 
-    prev_url = (
-        url_for('book_bp.get_books', limit=limit, cursor=prev_cursor, direction='prev', _external=True)
-        if prev_cursor and direction != 'next' else None
-    )
+    if books:
+        first_id = books[0].id
+        last_id = books[-1].id
+
+        if direction == 'next' and has_more:
+            next_url = url_for('book_bp.get_books', limit=limit, cursor=last_id, direction='next', _external=True)
+
+        if direction == 'next' and cursor:
+            prev_url = url_for('book_bp.get_books', limit=limit, cursor=first_id, direction='prev', _external=True)
+
+        if direction == 'prev':
+            next_url = url_for('book_bp.get_books', limit=limit, cursor=last_id, direction='next', _external=True)
+            if has_more:
+                prev_url = url_for('book_bp.get_books', limit=limit, cursor=first_id, direction='prev', _external=True)
 
     return jsonify({
-        'total': total_books,
         'limit': limit,
         'cursor': cursor,
         'next': next_url,
         'previous': prev_url,
+        'total_count': total_count,
         'books': books_data
     })
 
