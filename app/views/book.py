@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, url_for
 from app.models.book_model import Book
 from app.schemas.book_schema import BookSchema
 from app import db
@@ -7,22 +7,55 @@ book_schema = BookSchema()
 books_schema = BookSchema(many=True)
 
 book_bp = Blueprint('book_bp', __name__)
-
 @book_bp.route('/', methods=['GET'])
 def get_books():
     limit = int(request.args.get('limit', 10))
     cursor = request.args.get('cursor', None)
-    query = Book.query.order_by(Book.id)
-    if cursor:
-        query = query.filter(Book.id > cursor)
+    direction = request.args.get('direction', 'next')
 
-    books = query.limit(limit).all()
-    books_data = [{"id": book.id, "title": book.title, "author": book.author} for book in books]
+    query = Book.query
+    order = Book.id.asc()
+
+    if cursor:
+        try:
+            cursor = int(cursor)
+            if direction == 'next':
+                query = query.filter(Book.id > cursor)
+                order = Book.id.asc()
+            elif direction == 'prev':
+                query = query.filter(Book.id < cursor)
+                order = Book.id.desc()
+        except ValueError:
+            return jsonify({"error": "Invalid cursor value"}), 400
+
+    books = query.order_by(order).limit(limit).all()
+
+    if direction == 'prev':
+        books = list(reversed(books))
+
+    books_data = books_schema.dump(books)
+    total_books = Book.query.count()
+
     next_cursor = books[-1].id if books else None
+    prev_cursor = books[0].id if books else None
+
+    next_url = (
+        url_for('book_bp.get_books', limit=limit, cursor=next_cursor, direction='next', _external=True)
+        if next_cursor and len(books) == limit and direction != 'prev' else None
+    )
+
+    prev_url = (
+        url_for('book_bp.get_books', limit=limit, cursor=prev_cursor, direction='prev', _external=True)
+        if prev_cursor and direction != 'next' else None
+    )
 
     return jsonify({
-        'books': books_data,
-        'next_cursor': next_cursor
+        'total': total_books,
+        'limit': limit,
+        'cursor': cursor,
+        'next': next_url,
+        'previous': prev_url,
+        'books': books_data
     })
 
 @book_bp.route('/<int:book_id>', methods=['GET'])
