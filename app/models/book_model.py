@@ -1,13 +1,12 @@
-import itertools
-from ..storage.book_storage import books
+from pydantic import BaseModel
+from pydantic_mongo import ObjectIdField
+from typing import Optional
 
-class Book:
-    _id_counter = itertools.count(max(book["id"] for book in books) + 1 if books else 1)
+class BookModel(BaseModel):
+    id: Optional[ObjectIdField] = None
+    title: str
+    author: str
 
-    def __init__(self, title: str, author: str):
-        self.id = next(Book._id_counter)
-        self.title = title
-        self.author = author
-
-    def to_dict(self):
-        return {"id": self.id, "title": self.title, "author": self.author}
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectIdField: str}
