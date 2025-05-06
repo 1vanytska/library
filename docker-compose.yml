@@ -13,3 +13,11 @@ services:
       - mongo_data:/var/lib/mongo/data
     ports:
       - "27017:27017"
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo_db
+    environment:
+      MONGO_URI: mongodb://mongo_admin:password@mongo_db:27017/books?authSource=admin
