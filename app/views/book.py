@@ -179,14 +179,14 @@ def add_book():
 
     return jsonify(book_schema.dump(book)), 201
 
-@book_bp.route('/<int:book_id>', methods=['DELETE'])
+@book_bp.route('/<int:book_id>', methods=['DELETE']) 
 @swag_from({
     'tags': ['Books'],
     'parameters': [
         {'name': 'book_id', 'in': 'path', 'type': 'integer', 'required': True}
     ],
     'responses': {
-        200: {'description': 'Book deleted successfully'},
+        204: {'description': 'Book deleted successfully (No Content)'},
         404: {'description': 'Book not found'}
     }
 })
@@ -198,4 +198,4 @@ def delete_book(book_id):
     db.session.delete(book)
     db.session.commit()
     
-    return jsonify({"message": f"Book with ID {book_id} has been deleted"}), 200
+    return '', 204
