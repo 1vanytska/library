@@ -3,7 +3,7 @@ from app.db import books_collection
 from app.models.book_model import BookModel
 from app.schemas.book_schema import BookCreateSchema
 from pydantic_mongo import PydanticObjectId
-from app.auth import get_current_user
+from app.views.auth import get_current_user
 
 router = APIRouter()
 
