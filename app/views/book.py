@@ -4,13 +4,25 @@ from app.models.book_model import BookModel
 from app.schemas.book_schema import BookCreateSchema
 from pydantic_mongo import PydanticObjectId
 from app.views.auth import get_current_user
+from fastapi import Request
+from app.utils.rate_limiter import rate_limit
 
 router = APIRouter()
 
 @router.get("/books")
-async def get_books(current_user: str = Depends(get_current_user)):
+async def get_books(
+    request: Request,
+    current_user: str = Depends(get_current_user),
+):
+    await rate_limit(request, user_id=current_user.username)
     books = await books_collection.find().to_list(1000)
     return [BookModel(**{**book, "id": str(book["_id"])}) for book in books]
+
+@router.get("/public-books")
+async def public_books(request: Request):
+    await rate_limit(request, user_id=None)
+    books = await books_collection.find().to_list(1000)
+    return books
 
 @router.get("/books/{book_id}")
 async def get_book(book_id: str, current_user: str = Depends(get_current_user)):

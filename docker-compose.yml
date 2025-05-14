@@ -1,7 +1,13 @@
-volumes: 
+volumes:
   mongo_data:
 
 services:
+  redis:
+    image: redis
+    container_name: my_redis
+    ports:
+      - "6379:6379"
+
   mongo_db:
     image: mongo:latest
     restart: always
@@ -13,6 +19,7 @@ services:
       - mongo_data:/var/lib/mongo/data
     ports:
       - "27017:27017"
+
   backend:
     build: .
     ports:
@@ -21,3 +28,12 @@ services:
       - mongo_db
     environment:
       MONGO_URI: mongodb://mongo_admin:password@mongo_db:27017/books?authSource=admin
+
+  tests:
+    build: .
+    depends_on:
+      - backend
+      - mongo_db
+    environment:
+      MONGO_URI: mongodb://mongo_admin:password@mongo_db:27017/books?authSource=admin
+    command: pytest
