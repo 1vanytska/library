@@ -2,6 +2,16 @@ volumes:
   mongo_data:
 
 services:
+  prism:
+    image: stoplight/prism
+    container_name: prism-mock-api
+    command: mock -h 0.0.0.0 -p 4010 /prism/openapi.yaml
+    ports:
+      - "4010:4010"
+    volumes:
+      - ./openapi.yaml:/prism/openapi.yaml
+    environment:
+      - PRISM_MODE=mock
   redis:
     image: redis
     container_name: my_redis
