@@ -1,9 +1,8 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
   title: Library API
   version: 1.0.0
-servers:
-  - url: http://localhost:4010
+
 paths:
   /books:
     get:
@@ -17,6 +16,65 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Book'
+    post:
+      summary: Add a new book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookCreate'
+      responses:
+        '201':
+          description: Book created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+
+  /public-books:
+    get:
+      summary: Get public books
+      responses:
+        '200':
+          description: Public list of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+
+  /books/{book_id}:
+    get:
+      summary: Get a book by ID
+      parameters:
+        - name: book_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Book found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+
+    delete:
+      summary: Delete a book by ID
+      parameters:
+        - name: book_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Book deleted
 
 components:
   schemas:
@@ -26,6 +84,16 @@ components:
         id:
           type: string
           format: uuid
+        title:
+          type: string
+        author:
+          type: string
+    BookCreate:
+      type: object
+      required:
+        - title
+        - author
+      properties:
         title:
           type: string
         author:
